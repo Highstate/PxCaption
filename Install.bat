@@ -73,11 +73,17 @@ if errorlevel 1 (
 )
 
 echo [▶] Installing requirements...
-pip install -r Requirements.txt
+pip install -r requirements.txt
 if errorlevel 1 (
     echo [X] Failed to install requirements.
     exit /b 1
 )
+
+:: --- Cleanup: remove installed wheels ---
+echo [▶] Cleaning up wheel files...
+if exist "%VLLM_WHEEL%" del "%VLLM_WHEEL%"
+if exist "%FLASH_WHEEL%" del "%FLASH_WHEEL%"
+echo [✔] Wheel files removed.
 
 echo ============================================
 echo  Installation complete!

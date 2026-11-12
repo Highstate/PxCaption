@@ -259,7 +259,7 @@ class ModelSession:
             raise FileNotFoundError(f"Model folder is incomplete.\n{msg}")
 
         # Any quant string ending in "(vLLM)" routes to the vLLM backend;
-        # this covers Native, AWQ, and GPTQ in one check.
+        # this covers None, AWQ, and GPTQ in one check.
         use_vllm = (quant.endswith("(vLLM)") and VLLMBackend.available())
         requested_backend = "vllm" if use_vllm else "transformers"
 
@@ -878,7 +878,7 @@ class CaptionWorker(QThread):
 class MainWindow(QMainWindow):
     def __init__(self, app: QApplication, log_queue: queue.Queue | None = None):
         super().__init__()
-        self.setWindowTitle("PxCaption")
+        self.setWindowTitle("PxCaption v0.1")
         self.setWindowIcon(QIcon(ICON_PATH))
         self.setMinimumSize(1180, 660)
         self.resize(DEFAULT_WINDOW_W, DEFAULT_WINDOW_H)
@@ -1193,7 +1193,7 @@ class MainWindow(QMainWindow):
         br_lay = QHBoxLayout(br)
         br_lay.setContentsMargins(0, 0, 0, 0)
         br_lay.setSpacing(6)
-        self.btn_start = QPushButton("\U0001f680 Start")
+        self.btn_start = QPushButton("\U0001f7e2 Start")
         self.btn_start.clicked.connect(self.on_start)
         self.btn_abort = QPushButton("\u26d4 Stop")
         self.btn_abort.setEnabled(False)
@@ -1324,7 +1324,7 @@ class MainWindow(QMainWindow):
         """Swap backend-specific controls when the backend selection changes.
 
         Quantization items change per backend:
-          vLLM           \u2192 Native / AWQ / GPTQ  (checkpoint-level, auto-detected)
+          vLLM           \u2192 None / AWQ / GPTQ  (checkpoint-level, auto-detected)
           Transformers*  \u2192 None / 8-bit / 4-bit (NF4) / 4-bit (FP4)  (runtime BnB)
         Context, FP8 KV cache, and batch size are vLLM-only.
         """
@@ -1334,8 +1334,8 @@ class MainWindow(QMainWindow):
         self.cmb_quant.blockSignals(True)
         self.cmb_quant.clear()
         if use_vllm:
-            self.cmb_quant.addItems(["Native", "AWQ", "GPTQ"])
-            self.cmb_quant.setCurrentText("Native")
+            self.cmb_quant.addItems(["None", "AWQ", "GPTQ"])
+            self.cmb_quant.setCurrentText("None")
             self.cmb_quant.setToolTip(
                 "Checkpoint quantization \u2014 auto-detected from the model\u2019s config.json.\n"
                 "AWQ and GPTQ use optimised vLLM CUDA kernels.\n"
@@ -1471,18 +1471,18 @@ class MainWindow(QMainWindow):
         q = self.cmb_quant.currentText()
         if use_vllm:
             _QUANT_MAP = {
-                "Native": "Native (vLLM)",
+                "None": "None (vLLM)",
                 "AWQ":    "AWQ (vLLM)",
                 "GPTQ":   "GPTQ (vLLM)",
             }
         else:
             _QUANT_MAP = {
-                "None":        "Native (Transformers)",
+                "None":        "None (Transformers)",
                 "8-bit":       "8-bit (Transformers)",
                 "4-bit (NF4)": "4-bit (Transformers)",
                 "4-bit (FP4)": "4-bit FP4 (Transformers)",
             }
-        quant = _QUANT_MAP.get(q, "Native (Transformers)")
+        quant = _QUANT_MAP.get(q, "None (Transformers)")
         _ATTN_MAP = {
             "Flash Attention 2": "flash_attention_2",
             "SDPA":              "sdpa",
@@ -1702,7 +1702,7 @@ def main():
     faulthandler.enable()
 
     app = QApplication(sys.argv)
-    app.setApplicationName("PxCaption")
+    app.setApplicationName("PxCaption v0.1")
 
     window = MainWindow(app)
 
