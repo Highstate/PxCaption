@@ -61,7 +61,6 @@ A windows desktop GUI that captions images and video using Qwen2.5/3-VL models. 
 
    ```bash
    git clone https://github.com/Highstate/PxCaption.git PxCaption
-   cd PxCaption
 
 2. **Run the installer**
 
