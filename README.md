@@ -1,4 +1,4 @@
-# PxCaption (Windows 64-bit, Python 3.13, CUDA)
+# PxCaption (Windows 64-bit, Python 3.13, CUDA 13)
 <BR>
 A windows desktop GUI that captions images and video using Qwen2.5/3-VL models. Pluggable backends (vLLM / Transformers) with torch compile, quantization, attention and batching options for fast local inference.
 <BR>
