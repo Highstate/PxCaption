@@ -60,6 +60,11 @@ def configure_logging(queue, verbose: bool = False):
     log.addHandler(handler)
     log.propagate = False
 
+# Pillow's C-level codecs are NOT thread-safe. Both the caption worker
+# (load_and_resize) and the GUI thread (_show_preview) decode images via
+# PIL. A module-level lock serialises every PIL decode across threads.
+_PIL_LOCK = threading.Lock()
+
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
@@ -237,16 +242,17 @@ def load_and_resize(image_path: str) -> Image.Image:
         tokens), and drops anything an odd codec could choke on.
     """
     try:
-        with Image.open(image_path) as img:
-            img.load()
-            img = img.convert("RGB")
-            w, h = img.size
-            if max(w, h) > PRE_RESIZE_MAX_DIM:
-                scale = PRE_RESIZE_MAX_DIM / max(w, h)
-                img = img.resize(
-                    (max(1, int(w * scale)), max(1, int(h * scale))), Image.LANCZOS
-                )
-            return img.copy()
+        with _PIL_LOCK:
+            with Image.open(image_path) as img:
+                img.load()
+                img = img.convert("RGB")
+                w, h = img.size
+                if max(w, h) > PRE_RESIZE_MAX_DIM:
+                    scale = PRE_RESIZE_MAX_DIM / max(w, h)
+                    img = img.resize(
+                        (max(1, int(w * scale)), max(1, int(h * scale))), Image.LANCZOS
+                    )
+                return img.copy()
     except Exception as e:
         raise RuntimeError(f"could not read image {os.path.basename(image_path)}: {e}") from e
 

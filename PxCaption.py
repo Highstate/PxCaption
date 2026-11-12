@@ -17,10 +17,9 @@ import traceback
 import warnings
 
 import torch
-from PIL import Image
 
 from PyQt6.QtCore import Qt, QThread, QTimer, pyqtSignal
-from PyQt6.QtGui import QIcon, QImage, QPixmap, QTextCursor
+from PyQt6.QtGui import QIcon, QPixmap, QTextCursor
 from PyQt6.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -432,15 +431,7 @@ class _PrintRedirect(io.TextIOBase):
 # Qt helpers
 # ---------------------------------------------------------------------------
 
-def pil_to_qpixmap(pil_image: Image.Image, max_size: int = 3840) -> QPixmap:
-    img = pil_image.convert("RGB")
-    w, h = img.size
-    scale = min(1.0, max_size / max(w, h))
-    if scale < 1.0:
-        img = img.resize((max(1, int(w * scale)), max(1, int(h * scale))), Image.LANCZOS)
-    data = img.tobytes("raw", "RGB")
-    qimg = QImage(data, img.width, img.height, QImage.Format.Format_RGB888)
-    return QPixmap.fromImage(qimg)
+
 
 
 class CollapsibleGroup(QWidget):
@@ -878,7 +869,7 @@ class CaptionWorker(QThread):
 class MainWindow(QMainWindow):
     def __init__(self, app: QApplication, log_queue: queue.Queue | None = None):
         super().__init__()
-        self.setWindowTitle("PxCaption v0.1")
+        self.setWindowTitle("PxCaption v0.1.1")
         self.setWindowIcon(QIcon(ICON_PATH))
         self.setMinimumSize(1180, 660)
         self.resize(DEFAULT_WINDOW_W, DEFAULT_WINDOW_H)
@@ -1399,9 +1390,17 @@ class MainWindow(QMainWindow):
 
     def _show_preview(self, media_path: str, rel_path: str):
         try:
-            with Image.open(media_path) as img:
-                self._current_pixmap = pil_to_qpixmap(img)
-            self._fit_preview()
+            # Use Qt's native image loader — it reads the file, decodes, and
+            # allocates its own pixel buffer in one step. Avoids the PIL→QImage
+            # pointer handoff that caused 0xC0000005 crashes (the QImage
+            # (bytes,…) ctor stores a raw pointer into Python memory that can
+            # dangle).
+            pixmap = QPixmap(media_path)
+            if not pixmap.isNull():
+                self._current_pixmap = pixmap
+                self._fit_preview()
+            else:
+                log.error(f"Qt could not decode preview: {media_path}")
         except Exception as e:
             log.error(f"Could not load preview for {media_path}: {e}")
         self.lbl_media_name.setText(f"<b>File:</b> <code>{rel_path}</code>")
